@@ -1,0 +1,185 @@
+---
+kind: pipeline
+type: docker
+name: cron_work_for_gpu
+
+platform:
+  os: linux
+  arch: amd64
+
+trigger:
+  event:
+  - cron
+
+steps:
+- name: status
+  image: kayuii/github-checker
+  # failure: ignore
+  commands:
+  - URL=$(cat gpu/.version | github-checker hpool-dev/ironfish-miner)
+  - XPROXY=$(echo "$URL" | grep xproxy | tail -1)
+  - HPOOL_LINUX=$(echo "$URL" | grep linux | tail -1)
+  - |
+    if [ -n "$XPROXY" ]; then
+      github-checker hpool-dev/ironfish-miner | tee gpu/.version
+      echo $XPROXY | tee gpu/xproxy/.download_url
+      echo $XPROXY | sed -r "s/.*-v(.*)\.zip/\1/g" | tee gpu/xproxy/.version
+      echo $HPOOL_LINUX | tee gpu/.download_url
+    else
+      rm gpu/.version
+    fi
+
+- name: havenewversion
+  image: alpine/git
+  environment:
+    SSHKEY:
+      from_secret: DRONE_HPOOL_MINER
+    GIT_TERMINAL_PROMPT: 1
+  commands:
+  - |
+    if [ ! -f gpu/.version ] ; then
+      exit
+    fi
+  - git fetch --tags
+  - CUR_VERSION=$(cat gpu/.version | awk '{gsub(/\(|\)/,"");printf $2 "-" $3}')
+  - XPROXY_VERSION=$(cat gpu/xproxy/.version)
+  - mkdir -p "/root/.ssh"
+  - chmod 0700 /root/.ssh/
+  - ssh-keyscan github.com > /root/.ssh/known_hosts
+  - chmod 0600 /root/.ssh/known_hosts
+  - echo "$SSHKEY" | base64 -d > /root/.ssh/id_key
+  - chmod 0400 /root/.ssh/id_key
+  - ssh-keygen -l -f /root/.ssh/id_key | awk '{gsub(/\(|\)/,"");print "/root/.ssh/id_" tolower($4)}' | xargs -i ln -s /root/.ssh/id_key {}
+  - git add --all
+  - git config --global user.name "$DRONE_COMMIT_AUTHOR"
+  - git config --global user.mail "$DRONE_COMMIT_AUTHOR_EMAIL"
+  - git remote set-url origin git@github.com:Kayuii/ironfish-miner.git
+  - |
+    if [ -n "$(git status -s)" ]; then
+      git commit -m "[drone CI] update gpu version to $CUR_VERSION" --author="drone-build-bot <drone@vzxc.com>"
+      git push --set-upstream origin "$DRONE_BRANCH"
+      if [ -z "$(git tag | grep hpool-ironfish-miner-$CUR_VERSION)" ]; then
+        git tag -a "hpool-ironfish-miner-$CUR_VERSION" -m "[drone CI] publish gpu version to $CUR_VERSION"
+        git push origin tag "ironfish-miner-$CUR_VERSION"
+      fi
+      if [ -z "$(git tag | grep xproxy-ironfish-v$XPROXY_VERSION)" ]; then
+        git tag -a "xproxy-ironfish-v$XPROXY_VERSION" -m "[drone CI] publish xproxy-ironfish version to v$XPROXY_VERSION"
+        git push origin tag "xproxy-v$XPROXY_VERSION"
+      fi
+    fi
+
+  when:
+    status:
+    - success
+  depends_on:
+  - status
+
+
+---
+kind: pipeline
+type: docker
+name: master
+
+platform:
+  os: linux
+  arch: amd64
+
+trigger:
+  ref:
+  # - refs/heads/master
+  - refs/tags/**
+
+steps:
+- name: testing
+  image: ubuntu
+  commands:
+  - "echo ${DRONE_COMMIT_SHA:0:8}"
+  - "echo v${DRONE_TAG##*v}"
+  - "echo ${DRONE_TAG#*v}"
+  - "echo ${DRONE_TAG#*v}"
+  - "echo ${DRONE_TAG#v}"
+  - "echo ${DRONE_TAG##v}"
+  - "echo ${DRONE_TAG^}"
+  - "echo ${DRONE_TAG^^}"
+  - "echo ${DRONE_TAG,}"
+  - "echo ${DRONE_TAG,,}"
+  - "echo ${DRONE_TAG:5}"
+  - "echo ${DRONE_TAG:5:5}"
+
+---
+kind: pipeline
+type: docker
+name: build-ironfish-tag
+
+platform:
+  os: linux
+  arch: amd64
+
+trigger:
+  ref:
+  - refs/tags/ironfish-miner-v**
+  - refs/tags/xproxy-v**
+
+steps:
+- name: checker
+  image: ubuntu
+  # failure: ignore
+  commands:
+  - apt-get -qq update
+  - apt-get -qq install -y wget unzip
+  - mkdir -p gpu/tmp
+  - mkdir -p gpu/xproxy/tmp
+  - |
+    if [ -f gpu/xproxy/.download_url ]; then
+      wget -qO ./gpu/xproxy/tmp/xproxy.zip -i gpu/xproxy/.download_url
+      unzip gpu/xproxy/tmp/xproxy.zip -d "gpu/xproxy/tmp"
+    else
+      false
+    fi
+    if [ -f gpu/.download_url ]; then
+      wget -qO ./gpu/tmp/linux.zip -i gpu/.download_url
+      unzip gpu/tmp/linux.zip -d "gpu/tmp"
+    else
+      false
+    fi
+
+- name: publish-gpu
+  image: thegeeklab/drone-docker-buildx
+  privileged: true
+  settings:
+    tags:
+    - latest
+    - v${DRONE_TAG##*v}
+    platforms: "linux/amd64,linux/arm64,linux/arm"
+    dockerfile: gpu/Dockerfile
+    repo: kayuii/ironfish-miner
+    context: gpu
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+  when:
+    ref:
+    - refs/tags/ironfish-miner-v**
+
+- name: publish-xproxy
+  image: thegeeklab/drone-docker-buildx
+  privileged: true
+  settings:
+    tags:
+    - ${DRONE_TAG}
+    platforms: "linux/amd64"
+    dockerfile: gpu/xproxy/Dockerfile
+    repo: kayuii/ironfish-miner
+    context: gpu/xproxy
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+  when:
+    ref:
+    - refs/tags/xproxy-v**
+
+
+
+...
