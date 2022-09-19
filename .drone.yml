@@ -1,6 +1,85 @@
 ---
 kind: pipeline
 type: docker
+name: main_test
+
+platform:
+  os: linux
+  arch: amd64
+
+
+trigger:
+  ref:
+  - refs/heads/main
+
+steps:
+- name: status
+  image: kayuii/github-checker
+  # failure: ignore
+  commands:
+  - URL=$(cat gpu/.version | github-checker hpool-dev/ironfish-miner)
+  - XPROXY=$(echo "$URL" | grep xproxy | tail -1)
+  - HPOOL_LINUX=$(echo "$URL" | grep linux | tail -1)
+  - |
+    if [ -n "$XPROXY" ]; then
+      github-checker hpool-dev/ironfish-miner | tee gpu/.version
+      echo $XPROXY | tee gpu/xproxy/.download_url
+      echo $XPROXY | sed -r "s/.*-v(.*)\.zip/\1/g" | tee gpu/xproxy/.version
+      echo $HPOOL_LINUX | tee gpu/.download_url
+    else
+      rm gpu/.version
+    fi
+
+- name: havenewversion
+  image: alpine/git
+  environment:
+    SSHKEY:
+      from_secret: IRONFISH_MINER
+    GIT_TERMINAL_PROMPT: 1
+  commands:
+  - |
+    if [ ! -f gpu/.version ] ; then
+      exit
+    fi
+  - git fetch --tags
+  - CUR_VERSION=$(cat gpu/.version | awk '{gsub(/\(|\)/,"");if(length($3)>0)print $2"-"$3;else print $2;}')
+  - XPROXY_VERSION=$(cat gpu/xproxy/.version)
+  - mkdir -p "/root/.ssh"
+  - chmod 0700 /root/.ssh/
+  - ssh-keyscan github.com > /root/.ssh/known_hosts
+  - chmod 0600 /root/.ssh/known_hosts
+  - echo "$SSHKEY" | base64 -d > /root/.ssh/id_key
+  - chmod 0400 /root/.ssh/id_key
+  - ssh-keygen -l -f /root/.ssh/id_key | awk '{gsub(/\(|\)/,"");print "/root/.ssh/id_" tolower($4)}' | xargs -i ln -s /root/.ssh/id_key {}
+  - git add --all
+  - git config --global user.name "$DRONE_COMMIT_AUTHOR"
+  - git config --global user.mail "$DRONE_COMMIT_AUTHOR_EMAIL"
+  - git remote set-url origin git@github.com:Kayuii/ironfish-miner.git
+  - |
+    if [ -n "$(git status -s)" ]; then
+      git commit -m "[drone CI] update gpu version to $CUR_VERSION" --author="drone-build-bot <drone@vzxc.com>"
+      git push --set-upstream origin "$DRONE_BRANCH"
+      if [ -z "$(git tag | grep hpool-ironfish-miner-$CUR_VERSION)" ]; then
+        git tag -a "ironfish-miner-$CUR_VERSION" -m "[drone CI] publish gpu version to $CUR_VERSION"
+        git push origin tag "ironfish-miner-$CUR_VERSION"
+      fi
+      if [ -z "$(git tag | grep xproxy-ironfish-v$XPROXY_VERSION)" ]; then
+        git tag -a "xproxy-v$XPROXY_VERSION" -m "[drone CI] publish xproxy-ironfish version to v$XPROXY_VERSION"
+        git push origin tag "xproxy-v$XPROXY_VERSION"
+      fi
+    fi
+
+  when:
+    status:
+    - success
+  depends_on:
+  - status
+
+
+
+---
+kind: pipeline
+type: docker
 name: cron_work_for_gpu
 
 platform:
@@ -33,7 +112,7 @@ steps:
   image: alpine/git
   environment:
     SSHKEY:
-      from_secret: DRONE_HPOOL_MINER
+      from_secret: IRONFISH_MINER
     GIT_TERMINAL_PROMPT: 1
   commands:
   - |
@@ -41,7 +120,7 @@ steps:
       exit
     fi
   - git fetch --tags
-  - CUR_VERSION=$(cat gpu/.version | awk '{gsub(/\(|\)/,"");printf $2 "-" $3}')
+  - CUR_VERSION=$(cat gpu/.version | awk '{gsub(/\(|\)/,"");if(length($3)>0)print $2"-"$3;else print $2;}')
   - XPROXY_VERSION=$(cat gpu/xproxy/.version)
   - mkdir -p "/root/.ssh"
   - chmod 0700 /root/.ssh/
@@ -150,7 +229,7 @@ steps:
     tags:
     - latest
     - v${DRONE_TAG##*v}
-    platforms: "linux/amd64,linux/arm64,linux/arm"
+    platforms: "linux/amd64"
     dockerfile: gpu/Dockerfile
     repo: kayuii/ironfish-miner
     context: gpu

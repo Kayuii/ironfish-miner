@@ -13,15 +13,12 @@ server:
   port: 9190
 log:
   level: "info"
-  out: "./log/proxy.log"
+  out: "proxy.log"
 dbFile: "proxy.db"
 chains:
   -
-    chain: mass
-    apiKey: "mass"
-  -
-    chain: chia
-    apiKey: "chia"
+    chain: ironfish
+    apiKey: "ironfish"
 # socket5 or http proxy
 proxy:
   # E.g http://127.0.0.1:8888 socket5://127.0.0.1:8888
@@ -38,10 +35,10 @@ if [ "$1" = "x-proxy" ] ; then
         echo "$(sed "s/info/$LOGLV/g" config.yaml)" > config.yaml
     fi
     if [ -n "$LOGPATH" ]; then
-        sed -i "s#out: \"./log/proxy.log\"#out: \"$LOGPATH\"#g" config.yaml
+        sed -i "s#out: \"proxy.log\"#out: \"$LOGPATH\"#g" config.yaml
     else
         LOGPATH=/opt/log/proxy.log
-        sed -i "s#out: \"./log/proxy.log\"#out: \"$LOGPATH\"#g" config.yaml
+        sed -i "s#out: \"proxy.log\"#out: \"$LOGPATH\"#g" config.yaml
     fi
     if [ -n "$DBDIR" ]; then
         sed -i "s#dbFile: \"proxy.db\"#dbFile: \"$DBDIR\"#g" config.yaml
@@ -50,17 +47,20 @@ if [ "$1" = "x-proxy" ] ; then
         sed -i "s#dbFile: \"proxy.db\"#dbFile: \"$DBDIR\"#g" config.yaml
     fi
 
-    sed -i "s/apiKey: \"mass\"/apiKey: \"$MASSAPI\"/g" config.yaml
-    sed -i "s/apiKey: \"chia\"/apiKey: \"$CHIAAPI\"/g" config.yaml
+    if [ -n "$APIKEY" ]; then
+        sed -i "s/apiKey: \"ironfish\"/apiKey: \"$APIKEY\"/g" config.yaml
+    fi
 
     cat config.yaml
-    chown -R chia ./
-    chown -h chia:chia ./
-    touch "$LOGPATH"
-    chown -R chia "$LOGPATH"
-    chown -h chia:chia "$LOGPATH"
+    chown -R miner ./
+    chown -h miner:miner ./
+    if [ ! -f $LOGPATH ]; then
+      touch "$LOGPATH"
+      chown -R miner "$LOGPATH"
+      chown -h miner:miner "$LOGPATH"
+    fi
     echo "run : $@ "
-    exec gosu chia "$@"
+    exec gosu miner "$@"
 fi
 
 echo "run some: $@"

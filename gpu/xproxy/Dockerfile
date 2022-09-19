@@ -2,17 +2,19 @@ FROM ubuntu:20.04 as download
 
 ARG TARGETARCH
 
-COPY / /opt
-
 RUN apt-get -qq update \
   && apt-get -qq install -y --no-install-recommends ca-certificates curl \
-  && find /opt/ -name "*$TARGETARCH" | grep -v hpool-miner | xargs -i /bin/mv {} /opt/ \
   && cd /opt/ \
-  && ls -al \
   && curl -sOL https://github.com/krallin/tini/releases/download/v0.19.0/tini-$TARGETARCH \
   && chmod +x tini* \
   && curl -sOL https://github.com/tianon/gosu/releases/download/1.14/gosu-$TARGETARCH \
   && chmod +x gosu*
+
+COPY / /opt
+
+RUN find /opt/ -name "*$TARGETARCH" | grep x-proxy | xargs -i /bin/mv {} /opt/ \
+  && cd /opt/ \
+  && ls -al
 
 FROM alpine:3.12 as timezone
 

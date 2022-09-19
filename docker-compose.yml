@@ -1,0 +1,29 @@
+version: "3"
+services:
+  xproxy:
+    image: kayuii/ironfish-miner:xproxy-v1.0.3-1
+    restart: unless-stopped
+    container_name: xproxy
+    ports: [ "9190:9190" ]
+    volumes:
+      - ./xplogs:/opt/log/
+      - ./xpdb:/opt/db/
+    command:
+      - x-proxy
+    environment:
+      - APIKEY=ironfish-b486-cbdc-1370-704770a25172
+
+  miner:
+    image: kayuii/ironfish-miner:v1.0.3
+    restart: unless-stopped
+    # volumes:
+    #   - ./logs:/opt/log
+    runtime: nvidia
+    environment:
+        # 'all' uses all available GPUs. Specific GPU(s) can be selected with comma separated numbers, like '1,2' or '0,1,4'.
+      - NVIDIA_VISIBLE_DEVICES=all
+      - GPUMODE=1
+      - HOSTNAME=miner
+      - PROXY=http://xproxy:9190
+    command:
+      - hpool-miner
