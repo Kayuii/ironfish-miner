@@ -106,6 +106,6 @@ docker run --gpus=all --rm  kayuii/ironfish-miner nvidia-smi
 | RTX 3070   | 2.5 GH/s  | 220 W |
 | RTX 3070   | 2.29 GH/s  | 153 W |
 | RTX 3080 Ti  | 4 GH/s  | 243 W |
-| RTX 1660 super  | 1.28 MH/s  | 125 W |
+| RTX 1660 super  | 1.28 GH/s  | 125 W |
 | RTX 1660 super  | 960 MH/s  | 75 W |
 | 6800XT  | 3.6 GH/s |  |
