@@ -23,11 +23,11 @@ proxy:
 language: cn
 line: cn
 extraParams:
-  threadNum: "0"
+  threadNum: 0
   enableGPU: 1
   gpuDevice: 0
-  gpuBatchCount: 10240000
-  gpuLoop: 1
+  gpuBatchCount: 0
+  gpuLoop: 0
 
 EOF
 fi
@@ -55,10 +55,26 @@ if [ "$1" = "hpool-miner" ]; then
         chown -R miner ./log/
         chown -h miner:miner ./log/
     fi
-    if [ -n "$GPUMODE" ] ; then
-        ln -sf hpool-miner-ironfish-cuda hpool-miner
+    if [ -n "$CPUNUM" ]; then
+        echo "$(sed "s/threadNum: 0/threadNum: $CPUNUM/g" config.yaml)" > config.yaml
+    fi
+    if [ -n "$ENABLEGPU" ] && [ "$ENABLEGPU" -gt 0 ]; then
+        echo "$(sed "s/enableGPU: 1/enableGPU: 1/g" config.yaml)" > config.yaml
     else
-        ln -sf hpool-miner-ironfish-opencl hpool-miner
+        echo "$(sed "s/enableGPU: 1/enableGPU: 0/g" config.yaml)" > config.yaml
+    fi
+    if [ -n "$DEVICE" ]; then
+        echo "$(sed "s/gpuDevice: 0/gpuDevice: $DEVICE/g" config.yaml)" > config.yaml
+    fi
+    if [ -n "$GPUBATCHCOUNT" ]; then
+        echo "$(sed "s/gpuBatchCount: 0/gpuBatchCount: $GPUBATCHCOUNT/g" config.yaml)" > config.yaml
+    else
+        echo "$(sed "s/gpuBatchCount: 0/gpuBatchCount: 10240000/g" config.yaml)" > config.yaml
+    fi
+    if [ -n "$GPULOOP" ]; then
+        echo "$(sed "s/gpuLoop: 0/gpuLoop: $GPULOOP/g" config.yaml)" > config.yaml
+    else
+        echo "$(sed "s/gpuLoop: 0/gpuLoop: 1/g" config.yaml)" > config.yaml
     fi
 
     chown -R miner .

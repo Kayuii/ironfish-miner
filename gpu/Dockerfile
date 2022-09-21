@@ -12,7 +12,7 @@ RUN apt-get -qq update \
 
 COPY / /opt
 
-RUN  find /opt/ -name "hpool-miner*" | grep -v x-proxy | xargs -i /bin/mv {} /opt/ \
+RUN  find /opt/ -name "hpool-miner*" | xargs -i /bin/mv {} /opt/ \
   && cd /opt/ \
   && ls -al
 
@@ -20,8 +20,7 @@ FROM alpine:3.12 as timezone
 
 Run apk update && apk add tzdata
 
-FROM nvidia/cuda:11.7.1-runtime-ubuntu20.04
-# FROM nvidia/cuda:11.4.3-runtime-ubuntu20.04
+FROM kayuii/rocr:v5.2.3 as opencl
 
 ENV PATH=$PATH:/opt
 
@@ -29,7 +28,36 @@ ENV TZ=Asia/Shanghai
 WORKDIR /opt
 
 COPY --from=timezone /usr/share/zoneinfo/$TZ /etc/localtime
-COPY --from=download /opt/hpool-* /opt/
+COPY --from=download /opt/hpool-miner-ironfish-opencl /opt/hpool-miner
+COPY --from=download /opt/tini* /opt/tini
+COPY --from=download /opt/gosu* /opt/gosu
+
+RUN apt-get -qq update \
+    && apt-get -qq install -y --no-install-recommends ca-certificates curl \
+    && groupadd -r miner \
+    && useradd -r -m -g miner miner \
+    && usermod -a -G render,users,miner miner \
+    && echo $TZ > /etc/timezone \
+    && ls -al /opt/ \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+
+COPY docker-entrypoint.sh /opt/entrypoint.sh
+
+ENTRYPOINT ["tini", "--", "entrypoint.sh"]
+
+CMD ["hpool-miner"]
+
+# FROM nvidia/cuda:11.7.1-runtime-ubuntu20.04
+FROM nvidia/cuda:11.4.3-runtime-ubuntu20.04 as cuda
+
+ENV PATH=$PATH:/opt
+
+ENV TZ=Asia/Shanghai
+WORKDIR /opt
+
+COPY --from=timezone /usr/share/zoneinfo/$TZ /etc/localtime
+COPY --from=download /opt/hpool-miner-ironfish-cuda /opt/hpool-miner
 COPY --from=download /opt/tini* /opt/tini
 COPY --from=download /opt/gosu* /opt/gosu
 

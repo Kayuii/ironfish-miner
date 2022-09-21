@@ -7,7 +7,6 @@ platform:
   os: linux
   arch: amd64
 
-
 trigger:
   ref:
   - refs/heads/main
@@ -157,7 +156,7 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: master
+name: build-ironfish-tag
 
 platform:
   os: linux
@@ -165,8 +164,8 @@ platform:
 
 trigger:
   ref:
-  # - refs/heads/master
-  - refs/tags/**
+  - refs/tags/ironfish-miner-v**
+  - refs/tags/xproxy-v**
 
 steps:
 - name: testing
@@ -185,21 +184,6 @@ steps:
   - "echo ${DRONE_TAG:5}"
   - "echo ${DRONE_TAG:5:5}"
 
----
-kind: pipeline
-type: docker
-name: build-ironfish-tag
-
-platform:
-  os: linux
-  arch: amd64
-
-trigger:
-  ref:
-  - refs/tags/ironfish-miner-v**
-  - refs/tags/xproxy-v**
-
-steps:
 - name: checker
   image: ubuntu
   # failure: ignore
@@ -222,21 +206,42 @@ steps:
       false
     fi
 
-- name: publish-gpu
-  image: thegeeklab/drone-docker-buildx
-  privileged: true
+- name: publish-opencl
+  image: plugins/docker
   settings:
     tags:
-    - latest
-    - v${DRONE_TAG##*v}
-    platforms: "linux/amd64"
+    - opencl-v${DRONE_TAG##*v}
     dockerfile: gpu/Dockerfile
     repo: kayuii/ironfish-miner
+    target: opencl
     context: gpu
     username:
       from_secret: docker_username
     password:
       from_secret: docker_password
+    build_args:
+    - TARGETARCH=amd64
+  when:
+    ref:
+    - refs/tags/ironfish-miner-v**
+
+- name: publish-cuda
+  image: plugins/docker
+  settings:
+    tags:
+    - latest
+    - v${DRONE_TAG##*v}
+    - cuda-v${DRONE_TAG##*v}
+    dockerfile: gpu/Dockerfile
+    repo: kayuii/ironfish-miner
+    target: cuda
+    context: gpu
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    build_args:
+    - TARGETARCH=amd64
   when:
     ref:
     - refs/tags/ironfish-miner-v**

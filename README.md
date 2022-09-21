@@ -38,7 +38,6 @@ services:
     environment:
         # 'all' uses all available GPUs. Specific GPU(s) can be selected with comma separated numbers, like '1,2' or '0,1,4'.
       - NVIDIA_VISIBLE_DEVICES=all
-      - GPUMODE=1
     volumes:
       - ./config.yaml:/opt/config.yaml
     environment:
@@ -57,10 +56,11 @@ services:
     environment:
         # 'all' uses all available GPUs. Specific GPU(s) can be selected with comma separated numbers, like '1,2' or '0,1,4'.
       - NVIDIA_VISIBLE_DEVICES=all
-      - GPUMODE=1
       - APIKEY=ironfish-b486-cbdc-1370-704770a25172
       - HOSTNAME=miner
       - PROXY=http://192.168.1.88:9190
+      - ENABLEGPU=1
+      - DEVICE=0
     command:
       - hpool-miner
 ```
@@ -70,16 +70,16 @@ command-line example:
 ```sh
 docker run -itd --rm --gpus=all --name miner \
     -v "./config.yaml:/opt/config.yaml" \
-    -e 'GPUMODE=1' \
     kayuii/ironfish-miner:v1.0.3 hpool-miner
 ```
 or
 ```sh
 docker run -itd --rm --gpus=all --name miner \
-    -e 'GPUMODE=1' \
     -e "APIKEY=ironfish-b486-cbdc-1370-704770a25172" \
     -e 'HOSTNAME=miner' \
     -e 'PROXY=http://192.168.1.88:9190' \
+    -e 'ENABLEGPU=1' \
+    -e 'DEVICE=0' \
     kayuii/ironfish-miner:v1.0.3 hpool-miner
 ```
 # Multi-GPU setup and GPU selection
@@ -106,6 +106,14 @@ docker run --gpus=all --rm  kayuii/ironfish-miner nvidia-smi
 | RTX 3070   | 2.5 GH/s  | 220 W |
 | RTX 3070   | 2.29 GH/s  | 153 W |
 | RTX 3080 Ti  | 4 GH/s  | 243 W |
-| RTX 1660 super  | 1.28 GH/s  | 125 W |
+| RTX 1660 super  | 1.17 GH/s  | 125 W |
 | RTX 1660 super  | 960 MH/s  | 75 W |
 | 6800XT  | 3.6 GH/s |  |
+
+
+| CPU  | Hashrate | Thread |
+| --- | --- | --- |
+| AMD Ryzen Threadripper 3990X  | 3.8 MH/s  | 1 |
+| AMD Ryzen Threadripper 3990X  | 110 MH/s  | 32 |
+| AMD Ryzen Threadripper 3990X  | 200 MH/s  | 64 |
+| AMD Ryzen Threadripper 3990X  | 310 MH/s  | 128 |
