@@ -26,8 +26,8 @@ extraParams:
   threadNum: 0
   enableGPU: 1
   gpuDevice: 0
-  gpuBatchCount: 0
-  gpuLoop: 0
+  gpuBatchCount: 10240000
+  gpuLoop: 1
 
 EOF
 fi
@@ -67,14 +67,10 @@ if [ "$1" = "hpool-miner" ]; then
         echo "$(sed "s/gpuDevice: 0/gpuDevice: $DEVICE/g" config.yaml)" > config.yaml
     fi
     if [ -n "$GPUBATCHCOUNT" ]; then
-        echo "$(sed "s/gpuBatchCount: 0/gpuBatchCount: $GPUBATCHCOUNT/g" config.yaml)" > config.yaml
-    else
-        echo "$(sed "s/gpuBatchCount: 0/gpuBatchCount: 10240000/g" config.yaml)" > config.yaml
+        echo "$(sed "s/gpuBatchCount: 10240000/gpuBatchCount: $GPUBATCHCOUNT/g" config.yaml)" > config.yaml
     fi
     if [ -n "$GPULOOP" ]; then
-        echo "$(sed "s/gpuLoop: 0/gpuLoop: $GPULOOP/g" config.yaml)" > config.yaml
-    else
-        echo "$(sed "s/gpuLoop: 0/gpuLoop: 1/g" config.yaml)" > config.yaml
+        echo "$(sed "s/gpuLoop: 1/gpuLoop: $GPULOOP/g" config.yaml)" > config.yaml
     fi
 
     chown -R miner .

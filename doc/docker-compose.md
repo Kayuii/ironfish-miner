@@ -1,18 +1,8 @@
-version: "3"
-services:
-  xproxy:
-    image: kayuii/ironfish-miner:xproxy-v1.0.3-1
-    restart: unless-stopped
-    container_name: xproxy
-    ports: [ "9190:9190" ]
-    volumes:
-      - ./xplogs:/opt/log/
-      - ./xpdb:/opt/db/
-    command:
-      - x-proxy
-    environment:
-      - APIKEY=ironfish-b486-cbdc-1370-704770a25172
+### `docker-compose` example :
 
+```yml
+
+## for cuda
   miner-cuda:
     image: kayuii/ironfish-miner:cuda-v1.0.3
     restart: unless-stopped
@@ -29,7 +19,7 @@ services:
     command:
       - hpool-miner
 
-
+## for opencl
   miner-opencl:
     image: kayuii/ironfish-miner:opencl-v1.0.3
     restart: unless-stopped
@@ -50,3 +40,5 @@ services:
       - GPULOOP=1
     command:
       - hpool-miner
+
+```
