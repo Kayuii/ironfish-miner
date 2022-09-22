@@ -48,8 +48,9 @@ ENTRYPOINT ["tini", "--", "entrypoint.sh"]
 
 CMD ["hpool-miner"]
 
-# FROM nvidia/cuda:11.7.1-runtime-ubuntu20.04
-FROM nvidia/cuda:11.4.3-runtime-ubuntu20.04 as cuda
+FROM nvidia/cuda:11.7.1-base-ubuntu20.04 as cuda
+# FROM nvidia/cuda:11.4.3-base-ubuntu20.04 as cuda
+# cuda 11.7 hashrate greater than 11.4
 
 ENV PATH=$PATH:/opt
 
