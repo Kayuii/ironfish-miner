@@ -20,7 +20,7 @@ FROM alpine:3.12 as timezone
 
 Run apk update && apk add tzdata
 
-FROM kayuii/rocr:v5.2.3 as opencl
+FROM kayuii/amdgpu:v22.20.3 as opencl
 
 ENV PATH=$PATH:/opt
 

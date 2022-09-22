@@ -1,7 +1,7 @@
 # [kayuii/ironfish-miner](https://github.com/Kayuii/ironfish-miner)
 An [ironfish-miner](https://github.com/hpool-dev/ironfish-miner) docker image.
 
-## docker hub:
+### docker hub:
 [kayuii/ironfish-miner](https://hub.docker.com/r/kayuii/ironfish-miner)
 
 ## Requirements
@@ -26,13 +26,13 @@ x-proxy
 
 - `v1.0.3` ([Dockerfile](https://github.com/Kayuii/ironfish-miner/blob/main/gpu/xproxy/Dockerfile))
 
-### for ironfish-miner
+## for ironfish-miner
 
 * [docker-compose](https://github.com/Kayuii/ironfish-miner/blob/main/doc/docker-compose.md) example
 
 * [command-line](https://github.com/Kayuii/ironfish-miner/blob/main/doc/command-line.md) example
 
-# Multi-GPU setup and NVIDIA GPU selection
+### Multi-GPU setup and NVIDIA GPU selection
 The image can run on a multi-gpu setup. The exact GPUs can be selected using the `NVIDIA_VISIBLE_DEVICES`. Value `all` will make the image use all available GPUs. Number values can be used to select a specific GPU. Multiple specific GPUs can be selected with comma separated numbers, like `1,2` or `0,1,4`.
 
 GPU information (IDs, models, etc.) can be get from NVIDIA-SMI. The image comes with NVIDIA-SMI, so if you don't have it installed on your machine, you can run it with:
@@ -45,7 +45,7 @@ or
 docker run --gpus=all --rm  kayuii/ironfish-miner nvidia-smi
 ```
 
-# AMD GPU selection
+### AMD GPU selection
 The image can run on a multi-gpu setup. The exact GPUs can be selected using the `AMD_VISIBLE_DEVICES`. Value `all` will make the image use all available GPUs. Number values can be used to select a specific GPU. Multiple specific GPUs can be selected with comma separated numbers, like `1,2` or `0,1,4`.
 
 GPU information (IDs, models, etc.) can be get from NVIDIA-SMI. The image comes with ROCM-SMI, so if you don't have it installed on your machine, you can run it with:
@@ -55,6 +55,24 @@ docker run --runtime=rocm -e AMD_VISIBLE_DEVICES=all --security-opt seccomp=unco
 or
 ```
 docker run --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add render --rm  kayuii/ironfish-miner rocminfo
+```
+
+## for x-proxy
+
+```yaml
+version: "3"
+services:
+  xproxy:
+    image: kayuii/ironfish-miner:xproxy-v1.0.3-1
+    restart: unless-stopped
+    container_name: xproxy
+    ports: [ "9190:9190" ]
+    volumes:
+      - ./db:/opt/db/
+    command:
+      - x-proxy
+    environment:
+      - APIKEY=ironfish-b486-cbdc-1370-704770a25172
 ```
 
 ## about config.yaml
