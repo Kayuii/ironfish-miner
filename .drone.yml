@@ -229,12 +229,30 @@ steps:
   image: plugins/docker
   settings:
     tags:
-    - latest
-    - v${DRONE_TAG##*v}
     - cuda-v${DRONE_TAG##*v}
     dockerfile: gpu/Dockerfile
     repo: kayuii/ironfish-miner
     target: cuda
+    context: gpu
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    build_args:
+    - TARGETARCH=amd64
+  when:
+    ref:
+    - refs/tags/ironfish-miner-v**
+
+- name: publish-all
+  image: plugins/docker
+  settings:
+    tags:
+    - latest
+    - v${DRONE_TAG##*v}
+    dockerfile: gpu/Dockerfile
+    repo: kayuii/ironfish-miner
+    target: all-in-one
     context: gpu
     username:
       from_secret: docker_username

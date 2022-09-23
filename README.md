@@ -18,11 +18,16 @@ Note: I had to disable secure boot on Ubuntu 20.04 so that nvidia-docker can see
 
 ## Tags
 
-ironfish-miner
+### For ironfish-miner All-In-One
+- `latest` ([Dockerfile](https://github.com/Kayuii/ironfish-miner/blob/main/gpu/Dockerfile))
+- `v1.0.3-2`
 
-- `v1.0.3` ([Dockerfile](https://github.com/Kayuii/ironfish-miner/blob/main/gpu/Dockerfile))
-
-x-proxy
+### For ironfish-miner opencl
+- `opencl-v1.0.3-2`
+### For ironfish-miner cuda
+- `cuda-v1.0.3-2`
+- `v1.0.3`
+### x-proxy
 
 - `v1.0.3` ([Dockerfile](https://github.com/Kayuii/ironfish-miner/blob/main/gpu/xproxy/Dockerfile))
 
@@ -78,6 +83,18 @@ services:
 ## about config.yaml
 
 - ([config.yaml](https://github.com/Kayuii/ironfish-miner/blob/main/doc/YAML.md))
+
+## All-in-one
+Use environment variables in the `All-In-One` version to select the cuda and opencl versions.
+#### For example
+```
+# for opencl
+GPUMODE=0
+```
+```
+#for cuda
+GPUMODE=1
+```
 
 ## Performance:
 
